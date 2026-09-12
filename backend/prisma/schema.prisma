@@ -1,0 +1,43 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = "file:./dev.db"
+}
+
+model Subscription {
+  id          String      @id @default(cuid())
+  name        String
+  category    String
+  price       Float
+  currency    String      @default("DKK")
+  cycle       String      @default("monthly") // weekly | monthly | quarterly | yearly
+  nextRenewal DateTime
+  trialEndsAt DateTime?
+  status      String      @default("active") // active | trial | cancelled
+  source      String      @default("Website")
+  notes       String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+  detections  Detection[]
+}
+
+model Detection {
+  id             String        @id @default(cuid())
+  emailId        String        @unique // Gmail message id, for dedup
+  from           String?
+  subject        String?
+  service        String?
+  price          Float?
+  currency       String?
+  cycle          String?
+  trialEndsAt    DateTime?
+  confidence     Float?
+  status         String        @default("pending") // pending | confirmed | ignored
+  subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
+  subscriptionId String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+}

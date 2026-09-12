@@ -1,0 +1,23 @@
+# dependencies
+node_modules/
+
+# build output
+dist/
+backend/dist/
+
+# env / secrets
+.env
+.env*.local
+
+# database (SQLite for now — swap to Postgres later)
+*.db
+*.db-journal
+backend/prisma/dev.db
+backend/prisma/dev.db-journal
+
+# logs
+logs/
+*.log
+
+# misc
+.DS_Store
