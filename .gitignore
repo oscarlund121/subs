@@ -21,3 +21,4 @@ logs/
 
 # misc
 .DS_Store
+*.tsbuildinfo
