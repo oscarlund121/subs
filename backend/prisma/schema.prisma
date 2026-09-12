@@ -29,6 +29,8 @@ model Detection {
   emailId        String        @unique // Gmail message id, for dedup
   from           String?
   subject        String?
+  snippet        String?
+  body           String?
   service        String?
   price          Float?
   currency       String?

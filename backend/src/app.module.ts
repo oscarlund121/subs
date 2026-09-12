@@ -5,6 +5,7 @@ import { AppService } from './app.service.js';
 import { PrismaModule } from './prisma/prisma.module.js';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module.js';
 import { DetectionsModule } from './detections/detections.module.js';
+import { EmailModule } from './email/email.module.js';
 
 @Module({
   imports: [
@@ -12,6 +13,7 @@ import { DetectionsModule } from './detections/detections.module.js';
     PrismaModule,
     SubscriptionsModule,
     DetectionsModule,
+    EmailModule,
   ],
   controllers: [AppController],
   providers: [AppService],
