@@ -10,6 +10,10 @@ datasource db {
 model Subscription {
   id          String      @id @default(cuid())
   name        String
+  /// Normalised `name` (lowercased, punctuation stripped) used to recognise a
+  /// service we already track, so confirming two receipts from the same
+  /// merchant updates one subscription instead of creating duplicates.
+  nameKey     String      @default("")
   category    String
   price       Float
   currency    String      @default("DKK")
@@ -22,6 +26,8 @@ model Subscription {
   createdAt   DateTime    @default(now())
   updatedAt   DateTime    @updatedAt
   detections  Detection[]
+
+  @@index([nameKey])
 }
 
 model Detection {
@@ -30,16 +36,22 @@ model Detection {
   from           String?
   subject        String?
   snippet        String?
-  body           String?
   service        String?
+  category       String?
   price          Float?
   currency       String?
   cycle          String?
+  /// Next charge date, as stated in the email or derived from it.
+  renewalAt      DateTime?
   trialEndsAt    DateTime?
   confidence     Float?
+  /// Why the parser decided what it did — kept for tuning the rules.
+  parseReasons   String?
   status         String        @default("pending") // pending | confirmed | ignored
   subscription   Subscription? @relation(fields: [subscriptionId], references: [id])
   subscriptionId String?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
+
+  @@index([status, createdAt])
 }

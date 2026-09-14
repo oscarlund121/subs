@@ -5,9 +5,9 @@ import { EmailWatcherService } from './email-watcher.service.js';
 export class EmailController {
   constructor(private readonly emailWatcher: EmailWatcherService) {}
 
+  /** Manual "scan now" — returns what the scan found. */
   @Post('poll')
-  async poll() {
-    await this.emailWatcher.poll();
-    return { polled: true };
+  poll() {
+    return this.emailWatcher.poll();
   }
 }

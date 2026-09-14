@@ -1,32 +1,60 @@
 import { useCallback, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Pressable,
+  RefreshControl,
   StyleSheet,
   Text,
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
-import { Colors, Radius, Spacing } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, pressed, Radius, Shadow, Spacing, Type } from '@/constants/theme';
 import { api } from '@/lib/api';
 import { Subscription } from '@/lib/types';
+import { formatCurrency, monthlyTotals, primaryCurrency } from '@/lib/format';
+import { Separator } from '@/components/card';
 import { SubscriptionRow } from '@/components/subscription-row';
 import { AddSubscriptionModal } from '@/components/add-subscription-modal';
+import { ErrorBanner } from '@/components/error-banner';
+import {
+  SubscriptionFormSheet,
+  emptyFormValues,
+  toDateInput,
+  type SubscriptionFormValues,
+} from '@/components/subscription-form-sheet';
+
+function subscriptionToForm(sub: Subscription): SubscriptionFormValues {
+  return {
+    name: sub.name,
+    category: sub.category,
+    price: String(sub.price),
+    currency: sub.currency,
+    cycle: sub.cycle,
+    nextRenewal: toDateInput(sub.nextRenewal),
+  };
+}
 
 export default function SubscriptionsScreen() {
   const [subs, setSubs] = useState<Subscription[]>([]);
   const [loading, setLoading] = useState(true);
-  const [modalVisible, setModalVisible] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [addVisible, setAddVisible] = useState(false);
+  const [editing, setEditing] = useState<Subscription | null>(null);
 
   const load = useCallback(async () => {
     try {
       setSubs(await api.listSubscriptions());
-    } catch {
-      /* ignore */
+      setError(null);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Could not load subscriptions.');
     } finally {
       setLoading(false);
+      setRefreshing(false);
     }
   }, []);
 
@@ -36,26 +64,57 @@ export default function SubscriptionsScreen() {
     }, [load]),
   );
 
-  async function handleDelete(id: string) {
-    try {
-      await api.deleteSubscription(id);
-      load();
-    } catch {
-      /* ignore */
-    }
+  function confirmDelete(sub: Subscription) {
+    Alert.alert(
+      `Delete ${sub.name}?`,
+      'This removes it from your list. It can come back if the same service is detected in your email again.',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setEditing(null);
+            try {
+              await api.deleteSubscription(sub.id);
+              setError(null);
+              await load();
+            } catch (e) {
+              setError(e instanceof Error ? e.message : 'Could not delete it.');
+            }
+          },
+        },
+      ],
+    );
   }
+
+  const totals = monthlyTotals(subs);
+  const main = primaryCurrency(totals);
 
   return (
     <SafeAreaView style={styles.screen} edges={['top']}>
       <View style={styles.header}>
-        <View>
+        <View style={styles.headerText}>
           <Text style={styles.title}>Subscriptions</Text>
-          <Text style={styles.subtitle}>{subs.length} total</Text>
+          <Text style={styles.subtitle}>
+            {subs.length} tracked
+            {main ? ` · ${formatCurrency(totals[main], main)} a month` : ''}
+          </Text>
         </View>
-        <Pressable onPress={() => setModalVisible(true)} style={styles.addBtn}>
-          <Text style={styles.addBtnText}>+ Add</Text>
+        <Pressable
+          onPress={() => setAddVisible(true)}
+          hitSlop={8}
+          style={(s) => [styles.addBtn, pressed(s)]}
+        >
+          <Ionicons name="add" size={26} color={Colors.onAccent} />
         </Pressable>
       </View>
+
+      {error ? (
+        <View style={styles.banner}>
+          <ErrorBanner message={error} onRetry={load} />
+        </View>
+      ) : null}
 
       {loading ? (
         <ActivityIndicator color={Colors.accent} style={styles.loading} />
@@ -63,20 +122,52 @@ export default function SubscriptionsScreen() {
         <FlatList
           data={subs}
           keyExtractor={(s) => s.id}
-          contentContainerStyle={styles.list}
+          style={styles.list}
+          contentContainerStyle={subs.length ? styles.group : styles.groupEmpty}
+          showsVerticalScrollIndicator={false}
+          ItemSeparatorComponent={() => <Separator inset={70} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                load();
+              }}
+              tintColor={Colors.inkMuted}
+            />
+          }
           renderItem={({ item }) => (
-            <SubscriptionRow sub={item} onDelete={handleDelete} />
+            <SubscriptionRow sub={item} onPress={setEditing} />
           )}
           ListEmptyComponent={
-            <Text style={styles.empty}>No subscriptions yet.</Text>
+            error ? null : (
+              <Text style={styles.empty}>
+                Nothing tracked yet. Check the Inbox tab for subscriptions found
+                in your email, or add one by hand.
+              </Text>
+            )
           }
         />
       )}
 
       <AddSubscriptionModal
-        visible={modalVisible}
-        onClose={() => setModalVisible(false)}
+        visible={addVisible}
+        onClose={() => setAddVisible(false)}
         onCreated={load}
+      />
+
+      <SubscriptionFormSheet
+        visible={editing !== null}
+        title={editing?.name ?? ''}
+        submitLabel="Save changes"
+        initial={editing ? subscriptionToForm(editing) : emptyFormValues()}
+        onCancel={() => setEditing(null)}
+        onDelete={editing ? () => confirmDelete(editing) : undefined}
+        onSubmit={async (values) => {
+          await api.updateSubscription(editing!.id, values);
+          setEditing(null);
+          await load();
+        }}
       />
     </SafeAreaView>
   );
@@ -86,22 +177,34 @@ const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: Colors.bg },
   header: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
     alignItems: 'center',
+    gap: Spacing.md,
     paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.md,
-    paddingBottom: Spacing.sm,
+    paddingTop: Spacing.lg,
+    paddingBottom: Spacing.lg,
   },
-  title: { color: Colors.ink, fontSize: 26, fontWeight: '800' },
-  subtitle: { color: Colors.inkSecondary, fontSize: 13 },
+  headerText: { flex: 1, gap: 2 },
+  title: { ...Type.title, color: Colors.ink },
+  subtitle: { ...Type.meta, color: Colors.inkMuted },
   addBtn: {
-    backgroundColor: Colors.accent,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: 10,
+    width: 44,
+    height: 44,
     borderRadius: Radius.pill,
+    backgroundColor: Colors.accent,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  addBtnText: { color: Colors.bg, fontWeight: '700' },
-  loading: { marginTop: Spacing.xl },
-  list: { padding: Spacing.lg, gap: Spacing.sm },
-  empty: { color: Colors.inkMuted, fontSize: 14 },
+  banner: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md },
+  loading: { marginTop: Spacing.xxl },
+  list: { flex: 1 },
+  /** The content itself is the card, so rows read as one continuous panel. */
+  group: {
+    backgroundColor: Colors.card,
+    borderRadius: Radius.lg,
+    marginHorizontal: Spacing.lg,
+    marginBottom: Spacing.xl,
+    ...Shadow.card,
+  },
+  groupEmpty: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.sm },
+  empty: { ...Type.meta, color: Colors.inkMuted, lineHeight: 21 },
 });

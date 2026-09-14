@@ -1,40 +1,74 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Colors, Fonts, Radius, Spacing } from '@/constants/theme';
+import { Ionicons } from '@expo/vector-icons';
+import { Colors, pressed, Spacing, Type } from '@/constants/theme';
 import { Subscription } from '@/lib/types';
-import { daysUntil, formatCurrency, formatDate } from '@/lib/format';
+import { daysUntil, formatCurrency, formatCycle, formatRelativeDay } from '@/lib/format';
+import { Avatar } from './avatar';
+import { Chip } from './chip';
 
+/** Inside this window the renewal is worth calling out rather than stating. */
+const SOON_DAYS = 3;
+
+/**
+ * One line of a grouped list. The row carries no surface of its own — the
+ * parent <Card> provides it — so rows stack into a single continuous panel.
+ */
 export function SubscriptionRow({
   sub,
-  onDelete,
+  onPress,
 }: {
   sub: Subscription;
-  onDelete?: (id: string) => void;
+  onPress?: (sub: Subscription) => void;
 }) {
   const days = daysUntil(sub.nextRenewal);
   const isTrial = sub.status === 'trial';
+  const soon = days >= 0 && days <= SOON_DAYS;
 
-  return (
+  const body = (
     <View style={styles.row}>
-      <View style={[styles.dot, isTrial && styles.dotTrial]} />
+      <Avatar name={sub.name} />
+
       <View style={styles.body}>
-        <Text style={styles.name}>{sub.name}</Text>
-        <Text style={styles.meta}>
-          {sub.category} · {sub.cycle}
-          {isTrial && days > 0 ? ` · ${days}d trial left` : ''}
+        <Text style={styles.name} numberOfLines={1}>
+          {sub.name}
         </Text>
+        <View style={styles.metaRow}>
+          <Text style={styles.meta} numberOfLines={1}>
+            {sub.category}
+          </Text>
+          {isTrial ? (
+            <Chip tone="warning" label={days > 0 ? `${days}d trial` : 'Trial'} />
+          ) : null}
+        </View>
       </View>
+
       <View style={styles.right}>
         <Text style={styles.price}>
           {formatCurrency(sub.price, sub.currency)}
+          <Text style={styles.cycle}>{formatCycle(sub.cycle)}</Text>
         </Text>
-        <Text style={styles.renewal}>renews {formatDate(sub.nextRenewal)}</Text>
-        {onDelete ? (
-          <Pressable hitSlop={8} onPress={() => onDelete(sub.id)}>
-            <Text style={styles.delete}>Delete</Text>
-          </Pressable>
-        ) : null}
+        <Text style={[styles.renewal, soon && styles.renewalSoon]}>
+          {formatRelativeDay(sub.nextRenewal)}
+        </Text>
       </View>
+
+      {onPress ? (
+        <Ionicons
+          name="chevron-forward"
+          size={16}
+          color={Colors.inkMuted}
+          style={styles.chevron}
+        />
+      ) : null}
     </View>
+  );
+
+  if (!onPress) return body;
+
+  return (
+    <Pressable onPress={() => onPress(sub)} style={pressed}>
+      {body}
+    </Pressable>
   );
 }
 
@@ -43,47 +77,25 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radius.md,
-    padding: Spacing.md,
+    paddingHorizontal: Spacing.lg,
+    paddingVertical: 14,
   },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    backgroundColor: Colors.accent,
+  body: { flex: 1, gap: 3 },
+  name: { ...Type.body, color: Colors.ink, fontWeight: '600' },
+  // Wraps rather than squeezing the category into an ellipsis when a chip
+  // shares the line.
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+    flexWrap: 'wrap',
+    rowGap: Spacing.xs,
   },
-  dotTrial: {
-    backgroundColor: Colors.warning,
-  },
-  body: { flex: 1 },
-  name: {
-    color: Colors.ink,
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  meta: {
-    color: Colors.inkSecondary,
-    fontSize: 13,
-    marginTop: 2,
-  },
-  right: { alignItems: 'flex-end' },
-  price: {
-    color: Colors.ink,
-    fontSize: 16,
-    fontWeight: '700',
-    fontFamily: Fonts.mono,
-  },
-  renewal: {
-    color: Colors.inkMuted,
-    fontSize: 12,
-    marginTop: 2,
-  },
-  delete: {
-    color: Colors.danger,
-    fontSize: 12,
-    marginTop: 6,
-  },
+  meta: { ...Type.meta, color: Colors.inkMuted },
+  right: { alignItems: 'flex-end', gap: 3 },
+  price: { ...Type.body, color: Colors.ink, fontWeight: '600' },
+  cycle: { ...Type.small, color: Colors.inkMuted, fontWeight: '500' },
+  renewal: { ...Type.small, color: Colors.inkMuted, fontWeight: '500' },
+  renewalSoon: { color: Colors.warning, fontWeight: '600' },
+  chevron: { marginLeft: -Spacing.xs, marginRight: -Spacing.sm },
 });
