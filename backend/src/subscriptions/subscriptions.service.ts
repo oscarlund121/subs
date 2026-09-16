@@ -8,6 +8,12 @@ import { UpdateSubscriptionDto } from './dto/update-subscription.dto.js';
 import { nameKey } from '../common/name-key.js';
 import { nextFutureRenewal, CYCLES, type Cycle } from '../detections/parser/types.js';
 
+/**
+ * A live trial this close to converting gets a "you're about to be charged"
+ * reminder. Kept small so the nudge lands while there's still time to cancel.
+ */
+const TRIAL_REMINDER_DAYS = 2;
+
 @Injectable()
 export class SubscriptionsService {
   private readonly logger = new Logger(SubscriptionsService.name);
@@ -72,6 +78,8 @@ export class SubscriptionsService {
         }),
         ...(dto.trialEndsAt !== undefined && {
           trialEndsAt: dto.trialEndsAt ? new Date(dto.trialEndsAt) : null,
+          // A new end date warrants a fresh reminder.
+          trialRemindedAt: null,
         }),
         ...(dto.status !== undefined && { status: dto.status }),
         ...(dto.source !== undefined && { source: dto.source }),
@@ -86,6 +94,44 @@ export class SubscriptionsService {
     } catch {
       throw new NotFoundException('Subscription not found');
     }
+  }
+
+  /**
+   * Daily nudge: surface every live trial that is about to convert to a paid
+   * plan. `trialRemindedAt` makes it fire once per trial (reset whenever the
+   * end date changes). Today the delivery is a server log — this is the
+   * single place push notifications will hook into later.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_8AM)
+  async remindAboutEndingTrials(now: Date = new Date()): Promise<number> {
+    const horizon = new Date(now.getTime() + TRIAL_REMINDER_DAYS * 86_400_000);
+    const due = await this.prisma.subscription.findMany({
+      where: {
+        status: 'trial',
+        trialEndsAt: { gt: now, lte: horizon },
+        trialRemindedAt: null,
+      },
+      orderBy: { trialEndsAt: 'asc' },
+    });
+
+    for (const subscription of due) {
+      const endsAt = subscription.trialEndsAt!;
+      const days = Math.ceil((endsAt.getTime() - now.getTime()) / 86_400_000);
+      await this.prisma.subscription.update({
+        where: { id: subscription.id },
+        data: { trialRemindedAt: now },
+      });
+      this.logger.warn(
+        `Trial reminder: "${subscription.name}" ends in ${days} day(s) (${endsAt.toISOString()}) — will be charged ${subscription.price} ${subscription.currency}.`,
+      );
+    }
+
+    if (due.length) {
+      this.logger.log(
+        `Trial reminder: flagged ${due.length} subscription(s) ending soon.`,
+      );
+    }
+    return due.length;
   }
 
   /**

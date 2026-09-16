@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { NotFoundException } from '@nestjs/common';
 import { DetectionsService } from './detections.service.js';
 import type { PrismaService } from '../prisma/prisma.service.js';
+import type { CancellationService } from '../cancellation/cancellation.service.js';
 
 /**
  * Minimal in-memory stand-in for the two tables `confirm` touches. Keeps these
@@ -75,7 +76,10 @@ describe('DetectionsService.confirm', () => {
 
   beforeEach(() => {
     store = fakePrisma();
-    service = new DetectionsService(store.prisma as unknown as PrismaService);
+    service = new DetectionsService(
+      store.prisma as unknown as PrismaService,
+      { discover: () => Promise.resolve() } as unknown as CancellationService,
+    );
   });
 
   it('creates a subscription from the parsed fields', async () => {

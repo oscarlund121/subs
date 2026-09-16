@@ -13,6 +13,7 @@ import { useFocusEffect, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import {
   Colors,
+  Fonts,
   pressed,
   Radius,
   Spacing,
@@ -26,6 +27,7 @@ import {
   monthlyEquivalent,
   monthlyTotals,
   primaryCurrency,
+  trialsEndingSoon,
 } from '@/lib/format';
 import { Card, Separator } from '@/components/card';
 import { StatTile } from '@/components/stat-tile';
@@ -102,6 +104,9 @@ export default function HomeScreen() {
       amount: formatCurrency(trialSpend, main),
     };
   })();
+
+  // Trials about to convert to paid — the reminder the app exists to surface.
+  const endingSoon = trialsEndingSoon(live);
 
   return (
     <View style={styles.screen}>
@@ -189,6 +194,36 @@ export default function HomeScreen() {
               <ActivityIndicator color={Colors.accent} style={styles.loading} />
             ) : (
               <>
+                {endingSoon.length ? (
+                  <View style={styles.trialAlert}>
+                    <View style={styles.trialAlertHeader}>
+                      <Ionicons
+                        name="warning-outline"
+                        size={18}
+                        color={Colors.warning}
+                      />
+                      <Text style={styles.trialAlertTitle}>
+                        {endingSoon.length === 1
+                          ? 'Trial ending soon'
+                          : 'Trials ending soon'}
+                      </Text>
+                    </View>
+                    {endingSoon.map(({ sub, daysLeft }) => (
+                      <Text key={sub.id} style={styles.trialAlertBody}>
+                        <Text style={styles.trialAlertName}>{sub.name}</Text>{' '}
+                        {daysLeft === 0
+                          ? 'ends today'
+                          : `ends in ${daysLeft} day${daysLeft === 1 ? '' : 's'}`}{' '}
+                        — you will be charged{' '}
+                        <Text style={styles.trialAlertName}>
+                          {formatCurrency(sub.price, sub.currency)}
+                        </Text>
+                        .
+                      </Text>
+                    ))}
+                  </View>
+                ) : null}
+
                 <Text style={styles.sectionTitle}>Coming up</Text>
                 {upcoming.length ? (
                   <Card>
@@ -303,6 +338,29 @@ const styles = StyleSheet.create({
     color: Colors.ink,
     marginLeft: Spacing.xs,
   },
+  trialAlert: {
+    backgroundColor: Colors.warningSoft,
+    borderRadius: Radius.lg,
+    padding: Spacing.lg,
+    gap: Spacing.sm,
+  },
+  trialAlertHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.sm,
+  },
+  trialAlertTitle: {
+    ...Type.meta,
+    fontFamily: Fonts.subMedium,
+    color: Colors.warning,
+  },
+  trialAlertBody: {
+    ...Type.meta,
+    fontSize: 13.5,
+    color: Colors.inkSecondary,
+    lineHeight: 20,
+  },
+  trialAlertName: { fontFamily: Fonts.subMedium, color: Colors.ink },
   emptyCard: { padding: Spacing.xl },
   empty: { ...Type.meta, color: Colors.inkMuted, lineHeight: 21 },
 });

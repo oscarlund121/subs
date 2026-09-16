@@ -96,3 +96,18 @@ export function formatRelativeDay(iso: string | null | undefined): string {
     month: 'short',
   });
 }
+
+/**
+ * Live trials that convert to paid within `windowDays` — the list Home turns
+ * into a "you'll be charged in N days" warning. Soonest first.
+ */
+export function trialsEndingSoon(
+  subs: Subscription[],
+  windowDays = 2,
+): { sub: Subscription; daysLeft: number }[] {
+  return subs
+    .filter((s) => s.status === 'trial' && s.trialEndsAt)
+    .map((sub) => ({ sub, daysLeft: daysUntil(sub.trialEndsAt) }))
+    .filter((e) => e.daysLeft >= 0 && e.daysLeft <= windowDays)
+    .sort((a, b) => a.daysLeft - b.daysLeft);
+}

@@ -20,6 +20,9 @@ model Subscription {
   cycle       String      @default("monthly") // weekly | monthly | quarterly | yearly
   nextRenewal DateTime
   trialEndsAt DateTime?
+  /// When we last surfaced a "trial ending soon" reminder — a trial nags at
+  /// most once. Reset to null whenever the trial end date changes.
+  trialRemindedAt DateTime?
   status      String      @default("active") // active | trial | cancelled
   source      String      @default("Website")
   notes       String?
