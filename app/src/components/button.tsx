@@ -6,9 +6,22 @@ import {
   Text,
   ViewStyle,
 } from 'react-native';
-import { Colors, pressed, Radius, Spacing, Type } from '@/constants/theme';
+import {
+  Colors,
+  Fonts,
+  pressed,
+  Radius,
+  Spacing,
+  Type,
+} from '@/constants/theme';
 
-export type ButtonVariant = 'primary' | 'soft' | 'quiet' | 'destructive';
+export type ButtonVariant =
+  | 'primary'
+  | 'soft'
+  | 'quiet'
+  | 'destructive'
+  /** For buttons sitting on the green header, where `soft` would vanish. */
+  | 'onAccent';
 
 export function Button({
   label,
@@ -44,7 +57,7 @@ export function Button({
       {busy ? (
         <ActivityIndicator
           size="small"
-          color={variant === 'primary' ? Colors.onAccent : Colors.accent}
+          color={variant === 'soft' ? Colors.accentInk : Colors.ink}
         />
       ) : (
         <Text
@@ -75,11 +88,13 @@ const styles = StyleSheet.create({
   soft: { backgroundColor: Colors.accentSoft },
   quiet: { backgroundColor: Colors.fill },
   destructive: { backgroundColor: Colors.dangerSoft },
+  onAccent: { backgroundColor: Colors.bg },
 
-  label: { ...Type.body, fontWeight: '600' },
+  label: { ...Type.body, fontFamily: Fonts.semibold },
   labelSm: { fontSize: 14 },
   primaryLabel: { color: Colors.onAccent },
   softLabel: { color: Colors.accentInk },
   quietLabel: { color: Colors.inkSecondary },
   destructiveLabel: { color: Colors.danger },
+  onAccentLabel: { color: Colors.ink },
 });

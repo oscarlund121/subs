@@ -1,8 +1,13 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { Colors, Spacing, Type } from '@/constants/theme';
+import { Colors, Fonts, Spacing, Type } from '@/constants/theme';
 import { Detection } from '@/lib/types';
-import { daysUntil, formatCurrency, formatCycle, formatRelativeDay } from '@/lib/format';
-import { Avatar } from './avatar';
+import {
+  daysUntil,
+  formatCurrency,
+  formatCycle,
+  formatRelativeDay,
+} from '@/lib/format';
+import { CategoryIcon } from './category-icon';
 import { Button } from './button';
 import { Card } from './card';
 import { Chip } from './chip';
@@ -21,7 +26,10 @@ export function DetectionRow({
   onReview: () => void;
   onIgnore: () => void;
 }) {
-  const sender = (det.from ?? '').replace(/<[^>]+>/, '').replace(/"/g, '').trim();
+  const sender = (det.from ?? '')
+    .replace(/<[^>]+>/, '')
+    .replace(/"/g, '')
+    .trim();
   const needsReview =
     det.confidence !== null && det.confidence < NEEDS_REVIEW_BELOW;
   const isTrial = Boolean(det.trialEndsAt);
@@ -42,7 +50,7 @@ export function DetectionRow({
   return (
     <Card style={styles.card}>
       <View style={styles.header}>
-        <Avatar name={service} />
+        <CategoryIcon category={det.category} />
         <View style={styles.headerText}>
           <Text style={styles.service} numberOfLines={1}>
             {service}
@@ -73,7 +81,9 @@ export function DetectionRow({
           {isTrial ? (
             <Chip
               tone="warning"
-              label={trialDays > 0 ? `${trialDays} days of trial left` : 'Free trial'}
+              label={
+                trialDays > 0 ? `${trialDays} days of trial left` : 'Free trial'
+              }
             />
           ) : null}
           {needsReview || missingPrice ? (
@@ -113,13 +123,13 @@ const styles = StyleSheet.create({
   card: { padding: Spacing.lg, gap: Spacing.md },
   header: { flexDirection: 'row', alignItems: 'center', gap: Spacing.md },
   headerText: { flex: 1, gap: 3 },
-  service: { ...Type.body, color: Colors.ink, fontWeight: '600' },
+  service: { ...Type.body, fontFamily: Fonts.semibold, color: Colors.ink },
   meta: { ...Type.meta, color: Colors.inkMuted },
   priceBlock: { alignItems: 'flex-end', gap: 3 },
-  price: { ...Type.body, color: Colors.ink, fontWeight: '600' },
-  cycle: { ...Type.small, color: Colors.inkMuted, fontWeight: '500' },
+  price: { ...Type.amount, color: Colors.ink },
+  cycle: { ...Type.small, color: Colors.inkMuted },
   noPrice: { ...Type.meta, color: Colors.inkMuted },
-  renewal: { ...Type.small, color: Colors.inkMuted, fontWeight: '500' },
+  renewal: { ...Type.small, color: Colors.inkMuted },
   chips: { flexDirection: 'row', gap: Spacing.sm, flexWrap: 'wrap' },
   actions: { flexDirection: 'row', gap: Spacing.sm },
   action: { flex: 1 },

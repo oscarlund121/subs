@@ -1,17 +1,22 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import { Colors, pressed, Spacing, Type } from '@/constants/theme';
+import { Colors, Fonts, pressed, Spacing, Type } from '@/constants/theme';
 import { Subscription } from '@/lib/types';
-import { daysUntil, formatCurrency, formatCycle, formatRelativeDay } from '@/lib/format';
-import { Avatar } from './avatar';
+import {
+  daysUntil,
+  formatCurrency,
+  formatCycle,
+  formatRelativeDay,
+} from '@/lib/format';
+import { CategoryIcon } from './category-icon';
 import { Chip } from './chip';
 
 /** Inside this window the renewal is worth calling out rather than stating. */
 const SOON_DAYS = 3;
 
 /**
- * One line of a grouped list. The row carries no surface of its own — the
- * parent <Card> provides it — so rows stack into a single continuous panel.
+ * One line of a grouped list, in the kit's shape: category disc, name over a
+ * secondary line, then a vertical rule separating the amount. The row carries
+ * no surface of its own — the parent <Card> provides it.
  */
 export function SubscriptionRow({
   sub,
@@ -26,40 +31,39 @@ export function SubscriptionRow({
 
   const body = (
     <View style={styles.row}>
-      <Avatar name={sub.name} />
+      <CategoryIcon category={sub.category} />
 
       <View style={styles.body}>
         <Text style={styles.name} numberOfLines={1}>
           {sub.name}
         </Text>
         <View style={styles.metaRow}>
-          <Text style={styles.meta} numberOfLines={1}>
+          <Text style={styles.category} numberOfLines={1}>
             {sub.category}
           </Text>
           {isTrial ? (
-            <Chip tone="warning" label={days > 0 ? `${days}d trial` : 'Trial'} />
+            <Chip
+              tone="warning"
+              label={days > 0 ? `${days}d trial` : 'Trial'}
+            />
           ) : null}
         </View>
       </View>
 
+      <View style={styles.rule} />
+
       <View style={styles.right}>
-        <Text style={styles.price}>
+        <Text style={styles.price} numberOfLines={1}>
           {formatCurrency(sub.price, sub.currency)}
           <Text style={styles.cycle}>{formatCycle(sub.cycle)}</Text>
         </Text>
-        <Text style={[styles.renewal, soon && styles.renewalSoon]}>
+        <Text
+          style={[styles.renewal, soon && styles.renewalSoon]}
+          numberOfLines={1}
+        >
           {formatRelativeDay(sub.nextRenewal)}
         </Text>
       </View>
-
-      {onPress ? (
-        <Ionicons
-          name="chevron-forward"
-          size={16}
-          color={Colors.inkMuted}
-          style={styles.chevron}
-        />
-      ) : null}
     </View>
   );
 
@@ -81,9 +85,9 @@ const styles = StyleSheet.create({
     paddingVertical: 14,
   },
   body: { flex: 1, gap: 3 },
-  name: { ...Type.body, color: Colors.ink, fontWeight: '600' },
-  // Wraps rather than squeezing the category into an ellipsis when a chip
-  // shares the line.
+  name: { ...Type.body, fontFamily: Fonts.semibold, color: Colors.ink },
+  // Wraps rather than squeezing the date into an ellipsis when a chip shares
+  // the line.
   metaRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -91,11 +95,19 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     rowGap: Spacing.xs,
   },
-  meta: { ...Type.meta, color: Colors.inkMuted },
-  right: { alignItems: 'flex-end', gap: 3 },
-  price: { ...Type.body, color: Colors.ink, fontWeight: '600' },
-  cycle: { ...Type.small, color: Colors.inkMuted, fontWeight: '500' },
-  renewal: { ...Type.small, color: Colors.inkMuted, fontWeight: '500' },
-  renewalSoon: { color: Colors.warning, fontWeight: '600' },
-  chevron: { marginLeft: -Spacing.xs, marginRight: -Spacing.sm },
+  category: { ...Type.meta, fontSize: 13, color: Colors.inkMuted },
+  renewal: { ...Type.meta, fontSize: 12.5, color: Colors.accentInk },
+  renewalSoon: { color: Colors.warning, fontFamily: Fonts.subMedium },
+
+  /** The kit's vertical hairline between the row body and its amount. */
+  rule: {
+    width: StyleSheet.hairlineWidth,
+    alignSelf: 'stretch',
+    marginVertical: 2,
+    backgroundColor: Colors.separator,
+  },
+
+  right: { alignItems: 'flex-end', gap: 3, minWidth: 86 },
+  price: { ...Type.amount, color: Colors.ink },
+  cycle: { ...Type.small, fontSize: 12, color: Colors.inkMuted },
 });

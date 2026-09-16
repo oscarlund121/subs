@@ -13,8 +13,15 @@ of them, and (eventually) alerts before free trials convert. Monorepo:
   detections (dedup via Gmail message ID). LIVE and working.
 - **App** (Expo SDK 57): three tabs — Home (monthly spend / active / trials +
   upcoming renewals), Subscriptions (list + add modal + delete), Inbox
-  (confirm-to-add queue). Dark cinematic glass theme (OLED black `#050505`,
-  cyan accent `#22d3ee`).
+  (confirm-to-add queue). **FinWise** design language, ported from a Figma
+  finance kit: mint-green header (`#00D09E`) bleeding from the status bar with
+  a near-white sheet (`#F1FFF3`) riding up over it on a 40px radius, dark teal
+  ink (`#093030`), blue category discs, floating bottom tab bar. Poppins +
+  League Spartan via `@expo-google-fonts`. All tokens live in
+  `app/src/constants/theme.ts` — colours, type, radii and the category→icon
+  map. Note `Type` carries `fontFamily` and **no** `fontWeight`: with a custom
+  family Android ignores the weight, so pick a `Fonts.*` entry instead of
+  overriding weight at the call site.
 - **Deferred on purpose**: Clerk auth, LLM classifier (build it behind an
   `EmailClassifier` interface when the time comes), push notifications, 24/7
   launchd deploy.

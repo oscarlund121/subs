@@ -12,7 +12,15 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, pressed, Radius, Shadow, Spacing, Type } from '@/constants/theme';
+import {
+  Colors,
+  pressed,
+  Radius,
+  Shadow,
+  Spacing,
+  TAB_BAR_CLEARANCE,
+  Type,
+} from '@/constants/theme';
 import { api } from '@/lib/api';
 import { Subscription } from '@/lib/types';
 import { formatCurrency, monthlyTotals, primaryCurrency } from '@/lib/format';
@@ -53,7 +61,9 @@ export default function SubscriptionsScreen() {
       setSubs(await api.listSubscriptions());
       setError(null);
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Could not load subscriptions.');
+      setError(
+        e instanceof Error ? e.message : 'Could not load subscriptions.',
+      );
     } finally {
       setLoading(false);
       setRefreshing(false);
@@ -94,122 +104,141 @@ export default function SubscriptionsScreen() {
   const main = primaryCurrency(totals);
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Text style={styles.title}>Subscriptions</Text>
-          <Text style={styles.subtitle}>
-            {subs.length} tracked
-            {main ? ` · ${formatCurrency(totals[main], main)} a month` : ''}
-          </Text>
+    <View style={styles.screen}>
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        {/* Green header — the same block Home opens with. */}
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={styles.title}>Subscriptions</Text>
+            <Text style={styles.subtitle}>
+              {subs.length} tracked
+              {main ? ` · ${formatCurrency(totals[main], main)} a month` : ''}
+            </Text>
+          </View>
+          <Pressable
+            onPress={() => setAddVisible(true)}
+            hitSlop={8}
+            accessibilityRole="button"
+            accessibilityLabel="Add a subscription"
+            style={(s) => [styles.addBtn, pressed(s)]}
+          >
+            <Ionicons name="add" size={26} color={Colors.onAccent} />
+          </Pressable>
         </View>
-        <Pressable
-          onPress={() => setAddVisible(true)}
-          hitSlop={8}
-          style={(s) => [styles.addBtn, pressed(s)]}
-        >
-          <Ionicons name="add" size={26} color={Colors.onAccent} />
-        </Pressable>
-      </View>
 
-      {error ? (
-        <View style={styles.banner}>
-          <ErrorBanner message={error} onRetry={load} />
-        </View>
-      ) : null}
+        <View style={styles.sheet}>
+          {error ? (
+            <View style={styles.banner}>
+              <ErrorBanner message={error} onRetry={load} />
+            </View>
+          ) : null}
 
-      {loading ? (
-        <ActivityIndicator color={Colors.accent} style={styles.loading} />
-      ) : (
-        <FlatList
-          data={subs}
-          keyExtractor={(s) => s.id}
-          style={styles.list}
-          contentContainerStyle={subs.length ? styles.group : styles.groupEmpty}
-          showsVerticalScrollIndicator={false}
-          ItemSeparatorComponent={() => <Separator inset={70} />}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                load();
-              }}
-              tintColor={Colors.inkMuted}
-            />
-          }
-          renderItem={({ item }) => (
-            <SubscriptionRow sub={item} onPress={setEditing} />
-          )}
-          ListEmptyComponent={
-            error ? null : (
-              <Text style={styles.empty}>
-                Nothing tracked yet. Check the Inbox tab for subscriptions found
-                in your email, or add one by hand.
-              </Text>
-            )
-          }
-        />
-      )}
-
-      <AddSubscriptionModal
-        visible={addVisible}
-        onClose={() => setAddVisible(false)}
-        onCreated={load}
-      />
-
-      <SubscriptionFormSheet
-        visible={editing !== null}
-        title={editing?.name ?? ''}
-        submitLabel="Save changes"
-        initial={editing ? subscriptionToForm(editing) : emptyFormValues()}
-        onCancel={() => setEditing(null)}
-        onDelete={editing ? () => confirmDelete(editing) : undefined}
-        onCancelSubscription={
-          editing
-            ? () => {
-                const sub = editing;
-                setEditing(null);
-                setCancelling(sub);
+          {loading ? (
+            <ActivityIndicator color={Colors.accent} style={styles.loading} />
+          ) : (
+            <FlatList
+              data={subs}
+              keyExtractor={(s) => s.id}
+              style={styles.list}
+              contentContainerStyle={
+                subs.length ? styles.group : styles.groupEmpty
               }
-            : undefined
-        }
-        onSubmit={async (values) => {
-          await api.updateSubscription(editing!.id, values);
-          setEditing(null);
-          await load();
-        }}
-      />
+              showsVerticalScrollIndicator={false}
+              ItemSeparatorComponent={() => <Separator inset={80} />}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={() => {
+                    setRefreshing(true);
+                    load();
+                  }}
+                  tintColor={Colors.inkMuted}
+                />
+              }
+              renderItem={({ item }) => (
+                <SubscriptionRow sub={item} onPress={setEditing} />
+              )}
+              ListEmptyComponent={
+                error ? null : (
+                  <Text style={styles.empty}>
+                    Nothing tracked yet. Check the Inbox tab for subscriptions
+                    found in your email, or add one by hand.
+                  </Text>
+                )
+              }
+            />
+          )}
+        </View>
 
-      <CancelGuideSheet
-        subscription={cancelling}
-        onClose={() => setCancelling(null)}
-        onCancelled={load}
-      />
-    </SafeAreaView>
+        <AddSubscriptionModal
+          visible={addVisible}
+          onClose={() => setAddVisible(false)}
+          onCreated={load}
+        />
+
+        <SubscriptionFormSheet
+          visible={editing !== null}
+          title={editing?.name ?? ''}
+          submitLabel="Save changes"
+          initial={editing ? subscriptionToForm(editing) : emptyFormValues()}
+          onCancel={() => setEditing(null)}
+          onDelete={editing ? () => confirmDelete(editing) : undefined}
+          onCancelSubscription={
+            editing
+              ? () => {
+                  const sub = editing;
+                  setEditing(null);
+                  setCancelling(sub);
+                }
+              : undefined
+          }
+          onSubmit={async (values) => {
+            await api.updateSubscription(editing!.id, values);
+            setEditing(null);
+            await load();
+          }}
+        />
+
+        <CancelGuideSheet
+          subscription={cancelling}
+          onClose={() => setCancelling(null)}
+          onCancelled={load}
+        />
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.bg },
+  screen: { flex: 1, backgroundColor: Colors.accent },
+  safe: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.lg,
+    backgroundColor: Colors.accent,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xl,
   },
   headerText: { flex: 1, gap: 2 },
-  title: { ...Type.title, color: Colors.ink },
-  subtitle: { ...Type.meta, color: Colors.inkMuted },
+  title: { ...Type.title, fontSize: 22, color: Colors.onAccent },
+  subtitle: { ...Type.meta, fontSize: 13, color: Colors.onAccentMuted },
   addBtn: {
     width: 44,
     height: 44,
     borderRadius: Radius.pill,
-    backgroundColor: Colors.accent,
+    backgroundColor: Colors.bg,
     alignItems: 'center',
     justifyContent: 'center',
+  },
+  /** The sheet the list rides in, riding up over the green. */
+  sheet: {
+    flex: 1,
+    backgroundColor: Colors.bg,
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
+    paddingTop: Spacing.xl,
   },
   banner: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md },
   loading: { marginTop: Spacing.xxl },
@@ -219,7 +248,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.card,
     borderRadius: Radius.lg,
     marginHorizontal: Spacing.lg,
-    marginBottom: Spacing.xl,
+    marginBottom: TAB_BAR_CLEARANCE,
     ...Shadow.card,
   },
   groupEmpty: { paddingHorizontal: Spacing.xl, paddingTop: Spacing.sm },

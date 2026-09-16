@@ -8,10 +8,19 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { Colors, pressed, Radius, Shadow, Spacing, Type } from '@/constants/theme';
+import {
+  Colors,
+  Fonts,
+  Radius,
+  Shadow,
+  Spacing,
+  Type,
+  pressed,
+} from '@/constants/theme';
 import { CYCLES, type Cycle } from '@/lib/types';
 import { formatDate } from '@/lib/format';
 import { Button } from './button';
@@ -40,10 +49,11 @@ export interface SubscriptionFormResult {
 const DATE_PATTERN = /^\d{4}-\d{2}-\d{2}$/;
 
 /**
- * The sheet opens over a tab screen, and the tab bar keeps drawing on top of
- * it, so the last controls need room to clear it.
+ * Always leave this much daylight above the sheet, on top of the safe-area
+ * inset — a percentage of screen height doesn't account for the notch and
+ * ends up flush against the status bar on some devices.
  */
-const TAB_BAR_CLEARANCE = 56;
+const SHEET_TOP_GAP = 16;
 
 const CYCLE_LABELS: Record<Cycle, string> = {
   weekly: 'Weekly',
@@ -101,6 +111,8 @@ export function SubscriptionFormSheet({
   onCancelSubscription?: () => void;
 }) {
   const insets = useSafeAreaInsets();
+  const { height: windowHeight } = useWindowDimensions();
+  const sheetMaxHeight = windowHeight - insets.top - SHEET_TOP_GAP;
   const [values, setValues] = useState(initial);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -171,7 +183,7 @@ export function SubscriptionFormSheet({
         <KeyboardAvoidingView
           behavior={Platform.OS === 'ios' ? 'padding' : undefined}
         >
-          <View style={styles.sheet}>
+          <View style={[styles.sheet, { maxHeight: sheetMaxHeight }]}>
             <View style={styles.grabber} />
 
             <View style={styles.titleBlock}>
@@ -180,9 +192,10 @@ export function SubscriptionFormSheet({
             </View>
 
             <ScrollView
+              style={styles.scroll}
               contentContainerStyle={[
                 styles.form,
-                { paddingBottom: insets.bottom + TAB_BAR_CLEARANCE },
+                { paddingBottom: insets.bottom + Spacing.md },
               ]}
               keyboardShouldPersistTaps="handled"
               showsVerticalScrollIndicator={false}
@@ -239,7 +252,10 @@ export function SubscriptionFormSheet({
                       <Pressable
                         key={c}
                         onPress={() => set('cycle', c)}
-                        style={[styles.segmentItem, active && styles.segmentItemActive]}
+                        style={[
+                          styles.segmentItem,
+                          active && styles.segmentItemActive,
+                        ]}
                       >
                         <Text
                           style={[
@@ -328,7 +344,7 @@ function Field({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(31,29,26,0.35)',
+    backgroundColor: Colors.scrim,
     justifyContent: 'flex-end',
   },
   dismissArea: { flex: 1 },
@@ -337,7 +353,6 @@ const styles = StyleSheet.create({
     borderTopLeftRadius: Radius.xl,
     borderTopRightRadius: Radius.xl,
     paddingTop: Spacing.sm,
-    maxHeight: '92%',
     ...Shadow.sheet,
   },
   grabber: {
@@ -351,12 +366,21 @@ const styles = StyleSheet.create({
   titleBlock: { paddingHorizontal: Spacing.xl, gap: Spacing.xs },
   title: { ...Type.title, fontSize: 24, color: Colors.ink },
   hint: { ...Type.meta, color: Colors.inkMuted, lineHeight: 20 },
-  form: { padding: Spacing.xl, gap: Spacing.lg },
+  scroll: { flexShrink: 1 },
+  form: {
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.lg,
+    gap: Spacing.md,
+  },
   field: { gap: Spacing.sm },
   grow: { flex: 1 },
   currencyField: { width: 104 },
   pair: { flexDirection: 'row', gap: Spacing.md },
-  label: { ...Type.meta, color: Colors.inkSecondary, fontWeight: '600' },
+  label: {
+    ...Type.meta,
+    fontFamily: Fonts.subMedium,
+    color: Colors.inkSecondary,
+  },
   input: {
     backgroundColor: Colors.fill,
     borderRadius: Radius.sm,
@@ -365,7 +389,7 @@ const styles = StyleSheet.create({
     color: Colors.ink,
     fontSize: 16,
   },
-  caption: { ...Type.small, color: Colors.inkMuted, fontWeight: '500' },
+  caption: { ...Type.small, color: Colors.inkMuted },
   segment: {
     flexDirection: 'row',
     backgroundColor: Colors.fill,
@@ -398,8 +422,8 @@ const styles = StyleSheet.create({
   },
   delete: {
     ...Type.meta,
+    fontFamily: Fonts.subMedium,
     color: Colors.danger,
-    fontWeight: '600',
     textAlign: 'center',
     paddingVertical: Spacing.sm,
   },

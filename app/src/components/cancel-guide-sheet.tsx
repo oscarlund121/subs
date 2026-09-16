@@ -10,7 +10,15 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import * as WebBrowser from 'expo-web-browser';
-import { Colors, pressed, Radius, Shadow, Spacing, Type } from '@/constants/theme';
+import {
+  Colors,
+  Fonts,
+  Radius,
+  Shadow,
+  Spacing,
+  Type,
+  pressed,
+} from '@/constants/theme';
 import { api } from '@/lib/api';
 import type { CancelGuide, Subscription } from '@/lib/types';
 import { Button } from './button';
@@ -55,7 +63,9 @@ export function CancelGuideSheet({
       .catch((e) => {
         if (cancelled) return;
         setError(
-          e instanceof Error ? e.message : 'Could not load the cancellation guide.',
+          e instanceof Error
+            ? e.message
+            : 'Could not load the cancellation guide.',
         );
       })
       .finally(() => {
@@ -97,10 +107,7 @@ export function CancelGuideSheet({
       <View style={styles.backdrop}>
         <Pressable style={styles.dismissArea} onPress={onClose} />
         <View
-          style={[
-            styles.sheet,
-            { paddingBottom: insets.bottom + Spacing.lg },
-          ]}
+          style={[styles.sheet, { paddingBottom: insets.bottom + Spacing.lg }]}
         >
           <View style={styles.grabber} />
 
@@ -168,7 +175,7 @@ export function CancelGuideSheet({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(31,29,26,0.35)',
+    backgroundColor: Colors.scrim,
     justifyContent: 'flex-end',
   },
   dismissArea: { flex: 1 },
@@ -207,7 +214,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     marginTop: 1,
   },
-  stepBadgeText: { ...Type.small, color: Colors.accentInk, fontWeight: '700' },
+  stepBadgeText: {
+    ...Type.small,
+    fontFamily: Fonts.bold,
+    color: Colors.accentInk,
+  },
   stepText: { ...Type.body, color: Colors.ink, flex: 1, lineHeight: 22 },
   secondary: { marginTop: Spacing.sm },
 });

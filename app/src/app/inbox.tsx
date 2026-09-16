@@ -10,7 +10,13 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { Colors, Radius, Spacing, Type } from '@/constants/theme';
+import {
+  Colors,
+  Radius,
+  Spacing,
+  TAB_BAR_CLEARANCE,
+  Type,
+} from '@/constants/theme';
 import { api } from '@/lib/api';
 import { Detection } from '@/lib/types';
 import { Button } from '@/components/button';
@@ -94,127 +100,142 @@ export default function InboxScreen() {
   }
 
   return (
-    <SafeAreaView style={styles.screen} edges={['top']}>
-      <View style={styles.header}>
-        <View style={styles.headerText}>
-          <Text style={styles.title}>Inbox</Text>
-          <Text style={styles.subtitle}>
-            {loading
-              ? 'Looking for subscriptions…'
-              : dets.length
-                ? `${dets.length} waiting for you`
-                : 'Subscriptions found in your email land here'}
-          </Text>
+    <View style={styles.screen}>
+      <SafeAreaView style={styles.safe} edges={['top']}>
+        {/* Green header — the same block Home opens with. */}
+        <View style={styles.header}>
+          <View style={styles.headerText}>
+            <Text style={styles.title}>Inbox</Text>
+            <Text style={styles.subtitle}>
+              {loading
+                ? 'Looking for subscriptions…'
+                : dets.length
+                  ? `${dets.length} waiting for you`
+                  : 'Subscriptions found in your email land here'}
+            </Text>
+          </View>
+          <Button
+            label="Scan"
+            size="sm"
+            variant="onAccent"
+            busy={scanning}
+            onPress={scanNow}
+            style={styles.scanBtn}
+          />
         </View>
-        <Button
-          label="Scan"
-          size="sm"
-          variant="soft"
-          busy={scanning}
-          onPress={scanNow}
-          style={styles.scanBtn}
-        />
-      </View>
 
-      {error ? (
-        <View style={styles.banner}>
-          <ErrorBanner message={error} onRetry={load} />
-        </View>
-      ) : null}
-      {notice && !error ? (
-        <View style={styles.banner}>
-          <Text style={styles.notice}>{notice}</Text>
-        </View>
-      ) : null}
+        <View style={styles.sheet}>
+          {error ? (
+            <View style={styles.banner}>
+              <ErrorBanner message={error} onRetry={load} />
+            </View>
+          ) : null}
+          {notice && !error ? (
+            <View style={styles.banner}>
+              <Text style={styles.notice}>{notice}</Text>
+            </View>
+          ) : null}
 
-      {loading ? (
-        <ActivityIndicator color={Colors.accent} style={styles.loading} />
-      ) : (
-        <FlatList
-          data={dets}
-          keyExtractor={(d) => d.id}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={() => {
-                setRefreshing(true);
-                load();
-              }}
-              tintColor={Colors.inkMuted}
-            />
-          }
-          renderItem={({ item }) => (
-            <DetectionRow
-              det={item}
-              onConfirm={() => act(() => api.confirmDetection(item.id))}
-              onReview={() => setReviewing(item)}
-              onIgnore={() => act(() => api.ignoreDetection(item.id))}
+          {loading ? (
+            <ActivityIndicator color={Colors.accent} style={styles.loading} />
+          ) : (
+            <FlatList
+              data={dets}
+              keyExtractor={(d) => d.id}
+              contentContainerStyle={styles.list}
+              showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl
+                  refreshing={refreshing}
+                  onRefresh={() => {
+                    setRefreshing(true);
+                    load();
+                  }}
+                  tintColor={Colors.inkMuted}
+                />
+              }
+              renderItem={({ item }) => (
+                <DetectionRow
+                  det={item}
+                  onConfirm={() => act(() => api.confirmDetection(item.id))}
+                  onReview={() => setReviewing(item)}
+                  onIgnore={() => act(() => api.ignoreDetection(item.id))}
+                />
+              )}
+              ListEmptyComponent={
+                error ? null : (
+                  <View style={styles.emptyState}>
+                    <View style={styles.emptyIcon}>
+                      <Ionicons
+                        name="sparkles-outline"
+                        size={26}
+                        color={Colors.accent}
+                      />
+                    </View>
+                    <Text style={styles.emptyTitle}>You're all caught up</Text>
+                    <Text style={styles.emptyBody}>
+                      Nothing to review right now. Scan your email and anything
+                      that looks like a subscription will show up here.
+                    </Text>
+                    <Button
+                      label="Scan my email"
+                      variant="primary"
+                      busy={scanning}
+                      onPress={scanNow}
+                      style={styles.emptyBtn}
+                    />
+                  </View>
+                )
+              }
             />
           )}
-          ListEmptyComponent={
-            error ? null : (
-              <View style={styles.emptyState}>
-                <View style={styles.emptyIcon}>
-                  <Ionicons
-                    name="sparkles-outline"
-                    size={26}
-                    color={Colors.accent}
-                  />
-                </View>
-                <Text style={styles.emptyTitle}>You're all caught up</Text>
-                <Text style={styles.emptyBody}>
-                  Nothing to review right now. Scan your email and anything that
-                  looks like a subscription will show up here.
-                </Text>
-                <Button
-                  label="Scan my email"
-                  variant="soft"
-                  busy={scanning}
-                  onPress={scanNow}
-                  style={styles.emptyBtn}
-                />
-              </View>
-            )
-          }
-        />
-      )}
+        </View>
 
-      <SubscriptionFormSheet
-        visible={reviewing !== null}
-        title="Check the details"
-        submitLabel="Add subscription"
-        hint={
-          reviewing?.subject
-            ? `From the email “${reviewing.subject}”`
-            : undefined
-        }
-        initial={reviewing ? detectionToForm(reviewing) : emptyFormValues()}
-        onCancel={() => setReviewing(null)}
-        onSubmit={async (values) => {
-          const id = reviewing!.id;
-          setReviewing(null);
-          await act(() => api.confirmDetection(id, values));
-        }}
-      />
-    </SafeAreaView>
+        <SubscriptionFormSheet
+          visible={reviewing !== null}
+          title="Check the details"
+          submitLabel="Add subscription"
+          hint={
+            reviewing?.subject
+              ? `From the email “${reviewing.subject}”`
+              : undefined
+          }
+          initial={reviewing ? detectionToForm(reviewing) : emptyFormValues()}
+          onCancel={() => setReviewing(null)}
+          onSubmit={async (values) => {
+            const id = reviewing!.id;
+            setReviewing(null);
+            await act(() => api.confirmDetection(id, values));
+          }}
+        />
+      </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  screen: { flex: 1, backgroundColor: Colors.bg },
+  screen: { flex: 1, backgroundColor: Colors.accent },
+  safe: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.md,
-    paddingHorizontal: Spacing.lg,
-    paddingTop: Spacing.lg,
-    paddingBottom: Spacing.lg,
+    backgroundColor: Colors.accent,
+    paddingHorizontal: Spacing.xl,
+    paddingTop: Spacing.sm,
+    paddingBottom: Spacing.xl,
   },
   headerText: { flex: 1, gap: 2 },
-  title: { ...Type.title, color: Colors.ink },
-  subtitle: { ...Type.meta, color: Colors.inkMuted },
+  title: { ...Type.title, fontSize: 22, color: Colors.onAccent },
+  subtitle: { ...Type.meta, fontSize: 13, color: Colors.onAccentMuted },
+  /** The sheet the queue rides in, riding up over the green. */
+  sheet: {
+    flex: 1,
+    backgroundColor: Colors.bg,
+    borderTopLeftRadius: Radius.xl,
+    borderTopRightRadius: Radius.xl,
+    paddingTop: Spacing.xl,
+  },
   scanBtn: { minWidth: 84 },
   banner: { paddingHorizontal: Spacing.lg, paddingBottom: Spacing.md },
   notice: {
@@ -229,7 +250,7 @@ const styles = StyleSheet.create({
   loading: { marginTop: Spacing.xxl },
   list: {
     paddingHorizontal: Spacing.lg,
-    paddingBottom: Spacing.xxl,
+    paddingBottom: TAB_BAR_CLEARANCE,
     gap: Spacing.md,
   },
   emptyState: {

@@ -16,7 +16,11 @@ export function ErrorBanner({
     <View style={styles.banner}>
       <Text style={styles.text}>{message}</Text>
       {onRetry ? (
-        <Pressable onPress={onRetry} hitSlop={8} style={(s) => [styles.retry, pressed(s)]}>
+        <Pressable
+          onPress={onRetry}
+          hitSlop={8}
+          style={(s) => [styles.retry, pressed(s)]}
+        >
           <Text style={styles.retryText}>Retry</Text>
         </Pressable>
       ) : null}
@@ -39,7 +43,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: 6,
     borderRadius: Radius.pill,
-    backgroundColor: 'rgba(176,74,58,0.12)',
+    backgroundColor: Colors.dangerFill,
   },
   retryText: { ...Type.small, color: Colors.danger },
 });
