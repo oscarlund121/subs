@@ -9,11 +9,10 @@ import type {
 } from './types';
 
 /**
- * Set EXPO_PUBLIC_API_URL in `.env` to point at your machine on the LAN, e.g.
- * `EXPO_PUBLIC_API_URL=http://192.168.1.47:3000`. The localhost fallback only
- * works in the iOS simulator and on web.
+ * Defaults to the Mac mini on the LAN, which is where the backend runs.
+ * Override with EXPO_PUBLIC_API_URL in `.env` to point somewhere else.
  */
-export const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
+export const BASE_URL = process.env.EXPO_PUBLIC_API_URL ?? 'http://192.168.1.47:3000';
 
 /** Thrown for any failed request so screens can tell the user what went wrong. */
 export class ApiError extends Error {
