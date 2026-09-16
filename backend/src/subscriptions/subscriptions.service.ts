@@ -2,6 +2,7 @@ import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { Cron, CronExpression } from '@nestjs/schedule';
 import type { Subscription } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
+import { CancellationService } from '../cancellation/cancellation.service.js';
 import { CreateSubscriptionDto } from './dto/create-subscription.dto.js';
 import { UpdateSubscriptionDto } from './dto/update-subscription.dto.js';
 import { nameKey } from '../common/name-key.js';
@@ -11,7 +12,10 @@ import { nextFutureRenewal, CYCLES, type Cycle } from '../detections/parser/type
 export class SubscriptionsService {
   private readonly logger = new Logger(SubscriptionsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cancellation: CancellationService,
+  ) {}
 
   findAll(): Promise<Subscription[]> {
     return this.prisma.subscription.findMany({
@@ -27,8 +31,8 @@ export class SubscriptionsService {
     return subscription;
   }
 
-  create(dto: CreateSubscriptionDto): Promise<Subscription> {
-    return this.prisma.subscription.create({
+  async create(dto: CreateSubscriptionDto): Promise<Subscription> {
+    const subscription = await this.prisma.subscription.create({
       data: {
         name: dto.name,
         nameKey: nameKey(dto.name),
@@ -43,6 +47,10 @@ export class SubscriptionsService {
         notes: dto.notes ?? null,
       },
     });
+
+    // Resolve the cancellation page now so the first "Cancel" tap is instant.
+    void this.cancellation.discover(dto.name).catch(() => undefined);
+    return subscription;
   }
 
   async update(id: string, dto: UpdateSubscriptionDto): Promise<Subscription> {

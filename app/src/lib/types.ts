@@ -81,3 +81,17 @@ export interface PollResult {
   detected: number;
   filtered: number;
 }
+
+/** A discovered "how to cancel" guide for one service. */
+export interface CancelGuide {
+  id: string;
+  serviceName: string;
+  cancelUrl: string;
+  steps: string[];
+}
+
+/** Result of asking for a cancel guide — a concrete guide, or a search fallback. */
+export interface CancelGuideResponse {
+  guide: CancelGuide | null;
+  fallbackUrl: string;
+}

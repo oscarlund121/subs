@@ -3,6 +3,7 @@ import type { Detection, Subscription } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { ConfirmDetectionDto } from './dto/confirm-detection.dto.js';
 import { nameKey } from '../common/name-key.js';
+import { CancellationService } from '../cancellation/cancellation.service.js';
 import {
   addCycle,
   nextFutureRenewal,
@@ -12,7 +13,10 @@ import {
 
 @Injectable()
 export class DetectionsService {
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly cancellation: CancellationService,
+  ) {}
 
   /**
    * Detections awaiting review, most confident first — the ones the user can
@@ -64,6 +68,9 @@ export class DetectionsService {
           data,
         })
       : await this.prisma.subscription.create({ data });
+
+    // Resolve the cancellation page now so the first "Cancel" tap is instant.
+    void this.cancellation.discover(name).catch(() => undefined);
 
     return this.prisma.detection.update({
       where: { id },

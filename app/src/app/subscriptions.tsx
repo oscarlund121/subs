@@ -26,6 +26,7 @@ import {
   toDateInput,
   type SubscriptionFormValues,
 } from '@/components/subscription-form-sheet';
+import { CancelGuideSheet } from '@/components/cancel-guide-sheet';
 
 function subscriptionToForm(sub: Subscription): SubscriptionFormValues {
   return {
@@ -45,6 +46,7 @@ export default function SubscriptionsScreen() {
   const [error, setError] = useState<string | null>(null);
   const [addVisible, setAddVisible] = useState(false);
   const [editing, setEditing] = useState<Subscription | null>(null);
+  const [cancelling, setCancelling] = useState<Subscription | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -163,11 +165,26 @@ export default function SubscriptionsScreen() {
         initial={editing ? subscriptionToForm(editing) : emptyFormValues()}
         onCancel={() => setEditing(null)}
         onDelete={editing ? () => confirmDelete(editing) : undefined}
+        onCancelSubscription={
+          editing
+            ? () => {
+                const sub = editing;
+                setEditing(null);
+                setCancelling(sub);
+              }
+            : undefined
+        }
         onSubmit={async (values) => {
           await api.updateSubscription(editing!.id, values);
           setEditing(null);
           await load();
         }}
+      />
+
+      <CancelGuideSheet
+        subscription={cancelling}
+        onClose={() => setCancelling(null)}
+        onCancelled={load}
       />
     </SafeAreaView>
   );

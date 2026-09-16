@@ -55,3 +55,15 @@ model Detection {
 
   @@index([status, createdAt])
 }
+
+model CancellationGuide {
+  id            String    @id @default(cuid())
+  nameKey       String    @unique
+  serviceName   String
+  cancelUrl     String
+  /// JSON array of short "where to click" steps.
+  steps         String
+  discoveredAt  DateTime  @default(now())
+  lastVerifiedAt DateTime?
+  updatedAt     DateTime  @updatedAt
+}
