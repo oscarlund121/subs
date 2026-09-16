@@ -7,6 +7,7 @@ import { PrismaModule } from './prisma/prisma.module.js';
 import { SubscriptionsModule } from './subscriptions/subscriptions.module.js';
 import { DetectionsModule } from './detections/detections.module.js';
 import { EmailModule } from './email/email.module.js';
+import { CancellationModule } from './cancellation/cancellation.module.js';
 
 @Module({
   imports: [
@@ -16,6 +17,7 @@ import { EmailModule } from './email/email.module.js';
     SubscriptionsModule,
     DetectionsModule,
     EmailModule,
+    CancellationModule,
   ],
   controllers: [AppController],
   providers: [AppService],

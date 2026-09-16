@@ -1,5 +1,6 @@
 import type {
   ApiResponse,
+  CancelGuideResponse,
   ConfirmDetectionInput,
   CreateSubscriptionInput,
   Detection,
@@ -86,6 +87,10 @@ export const api = {
     }),
   deleteSubscription: (id: string) =>
     request<Subscription>(`/subscriptions/${id}`, { method: 'DELETE' }),
+
+  /** The "how to cancel" guide for a subscription (discovered on demand). */
+  getCancelGuide: (id: string) =>
+    request<CancelGuideResponse>(`/subscriptions/${id}/cancel-guide`),
 
   listDetections: () => request<Detection[]>('/detections'),
   /** Pass only the fields the user corrected. */

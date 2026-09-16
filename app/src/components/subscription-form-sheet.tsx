@@ -85,6 +85,7 @@ export function SubscriptionFormSheet({
   onCancel,
   onSubmit,
   onDelete,
+  onCancelSubscription,
 }: {
   visible: boolean;
   title: string;
@@ -96,6 +97,8 @@ export function SubscriptionFormSheet({
   onSubmit: (values: SubscriptionFormResult) => Promise<void>;
   /** When given, the sheet offers to remove the record it is editing. */
   onDelete?: () => void;
+  /** When given, the sheet offers to cancel the subscription at the source. */
+  onCancelSubscription?: () => void;
 }) {
   const insets = useSafeAreaInsets();
   const [values, setValues] = useState(initial);
@@ -274,6 +277,20 @@ export function SubscriptionFormSheet({
                 busy={busy}
                 style={styles.submit}
               />
+              {onCancelSubscription ? (
+                <View style={styles.cancelSubBlock}>
+                  <Button
+                    label="Cancel subscription"
+                    variant="soft"
+                    onPress={onCancelSubscription}
+                  />
+                  <Text style={styles.cancelSubCaption}>
+                    Opens the service's own cancellation page — you finish the
+                    last click.
+                  </Text>
+                </View>
+              ) : null}
+
               <Pressable onPress={onCancel} style={pressed}>
                 <Text style={styles.cancel}>Cancel</Text>
               </Pressable>
@@ -372,6 +389,12 @@ const styles = StyleSheet.create({
     color: Colors.inkSecondary,
     textAlign: 'center',
     paddingVertical: Spacing.md,
+  },
+  cancelSubBlock: { gap: Spacing.xs },
+  cancelSubCaption: {
+    ...Type.small,
+    color: Colors.inkMuted,
+    textAlign: 'center',
   },
   delete: {
     ...Type.meta,
