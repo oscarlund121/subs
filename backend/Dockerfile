@@ -3,6 +3,8 @@
 # ---- build stage ----
 FROM node:22-slim AS builder
 WORKDIR /app
+# 2 GB VPS — cap Node's heap so `nest build` (tsc) doesn't OOM.
+ENV NODE_OPTIONS=--max-old-space-size=768
 COPY package.json package-lock.json ./
 # npm 10.9.8 (ships with node:22) crashes with "edgesOut" on this project.
 RUN npm install -g npm@latest
