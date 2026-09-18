@@ -4,6 +4,8 @@
 FROM node:22-slim AS builder
 WORKDIR /app
 COPY package.json package-lock.json ./
+# npm 10.9.8 (ships with node:22) crashes with "edgesOut" on this project.
+RUN npm install -g npm@latest
 RUN npm ci
 COPY . .
 RUN npx prisma generate
