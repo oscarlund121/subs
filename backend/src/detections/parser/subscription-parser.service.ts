@@ -54,7 +54,16 @@ const TRIAL_KEYWORDS =
  * Checked against the subject, where these are reliably signalled.
  */
 const NOT_BILLING =
-  /\b(password|reset\s+your|verify\s+your|verification\s+code|security\s+alert|sign[-\s]?in|new\s+device|has\s+shipped|out\s+for\s+delivery|tracking\s+number|delivery|refund(?:ed)?|nulstil|bekræft\s+din|adgangskode|leveret|forsendelse|pakken)\b/i;
+  /\b(password|reset\s+your|verify\s+your|verification\s+code|security\s+alert|sign[- ]?in|new\s+device|has\s+shipped|out\s+for\s+delivery|tracking\s+number|delivery|refund(?:ed)?|nulstil|bekræft\s+din|adgangskode|leveret|forsendelse|pakken)\b/i;
+
+/**
+ * Promotional / referral / contest mail. Like `NOT_BILLING` it is checked on
+ * the subject only — "refer a friend" links and "X months free" banners sit in
+ * the footer of *every* legitimate receipt, so matching the body here would
+ * bury real subscriptions.
+ */
+const MARKETING =
+  /\b(share|refer|referral|refer\s+a\s+friend|invite|invitation|giveaway|give\s+away|contest|sweepstakes|win\s+a|exclusive\s+offer|promo|discount|last\s+chance|final\s+chance|bonus|credits?\s+expire|expires?\s+(?:soon|tomorrow)|del\s+med|del\s+en|inviter|henvis|anbefal|gavekort|konkurrence|pr[æe]mie|sidste\s+chance|udl[øo]ber\s+(?:snart|i\s+morgen)|months?\s+free|free\s+months?|m[åa]neder[s]?\s+gratis|gratis\s+m[åa]neder)\b/i;
 
 const CONFIDENCE_THRESHOLD = 0.5;
 
@@ -86,6 +95,9 @@ export class SubscriptionParserService {
     // --- Hard negatives ---------------------------------------------------
     if (NOT_BILLING.test(subject)) {
       return this.notSubscription([...reasons, 'subject looks transactional, not billing']);
+    }
+    if (MARKETING.test(subject)) {
+      return this.notSubscription([...reasons, 'subject looks promotional, not billing']);
     }
 
     // --- Billing language -------------------------------------------------

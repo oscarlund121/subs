@@ -2,6 +2,7 @@ import { Injectable, Logger } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { google, gmail_v1 } from 'googleapis';
 import { extractBody } from './mime.js';
+import { merchantQueryDomains } from '../detections/parser/merchants.js';
 
 export interface IncomingEmail {
   id: string;
@@ -13,20 +14,57 @@ export interface IncomingEmail {
 }
 
 /**
- * Narrows the mailbox to mail that could plausibly be subscription billing.
- * Without this we would pull in every newsletter and personal email, and the
- * parser would spend its time rejecting them.
+ * Words that, in a *subject*, reliably mark billing or trial mail. This is the
+ * fallback path for senders we don't know about — known billing domains are
+ * pulled by `from:` below regardless of subject.
+ *
+ * Deliberately subject-scoped: the previous version also matched bare body
+ * terms ("your subscription", "free trial"), which dragged every newsletter
+ * whose footer mentions "subscription" into the pipeline (The Economist alone
+ * was ~60% of all filtered mail) to be rejected after a wasted fetch + parse.
+ */
+const BILLING_SUBJECT_TERMS = [
+  'receipt',
+  'invoice',
+  'subscription',
+  'subscribed',
+  'renewal',
+  'renews',
+  'renewing',
+  'membership',
+  'billing',
+  'billed',
+  'payment',
+  'trial',
+  'kvittering',
+  'faktura',
+  'abonnement',
+  'fornyelse',
+  'fornyes',
+  'betaling',
+  'medlemskab',
+  'opkrævning',
+  'regning',
+  'prøveperiode',
+  'prøve',
+];
+
+/**
+ * `from:(<known billing domains>) OR subject:(<billing words>)`.
+ *
+ * Two paths into the watcher:
+ *  - a known billing domain is always fetched (recall — catches "Your plan is
+ *    changing" and other non-billing subject lines from real services), and
+ *  - an unknown sender needs an explicitly billing subject (precision — keeps
+ *    newsletters and personal mail out).
  */
 const SUBSCRIPTION_QUERY = [
   '-in:spam',
   '-in:trash',
   '(',
-  'subject:(receipt OR invoice OR subscription OR renewal OR renews OR membership',
-  'OR billing OR "free trial" OR kvittering OR faktura OR abonnement OR fornyelse',
-  'OR betaling OR medlemskab)',
-  'OR "your subscription" OR "next billing date" OR "payment received"',
-  'OR "payment confirmation" OR "auto-renew" OR "free trial"',
-  'OR "dit abonnement" OR "næste betaling" OR "prøveperiode"',
+  `from:(${merchantQueryDomains().join(' OR ')})`,
+  'OR',
+  `subject:(${BILLING_SUBJECT_TERMS.join(' OR ')})`,
   ')',
 ].join(' ');
 

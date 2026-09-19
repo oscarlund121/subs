@@ -3,6 +3,7 @@ import { Interval } from '@nestjs/schedule';
 import { GmailService } from './gmail.service.js';
 import { PrismaService } from '../prisma/prisma.service.js';
 import { SubscriptionParserService } from '../detections/parser/subscription-parser.service.js';
+import { nameKey } from '../common/name-key.js';
 
 export interface PollResult {
   scanned: number;
@@ -84,6 +85,18 @@ export class EmailWatcherService implements OnModuleInit {
     const seen = new Set(known.map((d) => d.emailId));
     const fresh = ids.filter((id) => !seen.has(id));
 
+    // Services the user already tracks. A receipt / renewal notice for one of
+    // these is not a new subscription, so it must not land in the Inbox as a
+    // fresh "add me" item. Resolved once per poll — the table is small.
+    const trackedKeys = new Set(
+      (
+        await this.prisma.subscription.findMany({
+          where: { status: { not: 'cancelled' } },
+          select: { nameKey: true },
+        })
+      ).map((s) => s.nameKey),
+    );
+
     let detected = 0;
     let filtered = 0;
 
@@ -91,6 +104,14 @@ export class EmailWatcherService implements OnModuleInit {
       try {
         const email = await this.gmail.getMessage(id);
         const parsed = this.parser.parse(email);
+
+        const alreadyTracked =
+          parsed.isSubscription &&
+          parsed.service !== null &&
+          trackedKeys.has(nameKey(parsed.service));
+        const reasons = alreadyTracked
+          ? [...parsed.reasons, 'already tracked']
+          : parsed.reasons;
 
         await this.prisma.detection.create({
           data: {
@@ -108,14 +129,15 @@ export class EmailWatcherService implements OnModuleInit {
             renewalAt: parsed.renewalAt,
             trialEndsAt: parsed.trialEndsAt,
             confidence: parsed.confidence,
-            parseReasons: JSON.stringify(parsed.reasons),
+            parseReasons: JSON.stringify(reasons),
             // `filtered` keeps the email id on record so we never re-fetch it,
             // without showing the user something we judged irrelevant.
-            status: parsed.isSubscription ? 'pending' : 'filtered',
+            status:
+              parsed.isSubscription && !alreadyTracked ? 'pending' : 'filtered',
           },
         });
 
-        if (parsed.isSubscription) detected++;
+        if (parsed.isSubscription && !alreadyTracked) detected++;
         else filtered++;
       } catch (err) {
         this.logger.warn(

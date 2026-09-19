@@ -162,6 +162,38 @@ export function brandFromDomain(domain: string): string | null {
   return labels[labels.length - 1] ?? null;
 }
 
+/**
+ * Multi-product / notification-heavy senders whose *billing* mail always
+ * carries an explicit "receipt" / "invoice" / "subscription" subject. Pulling
+ * these into the watcher via `from:` would only drag in their security-alert,
+ * notification and marketing mail (all of which the parser then has to spend a
+ * fetch + parse rejecting). They stay reachable through the subject clause.
+ */
+export const QUERY_UMBRELLA_DOMAINS = new Set([
+  'google.com',
+  'microsoft.com',
+  'apple.com',
+  'youtube.com',
+  'github.com',
+  'sony.com',
+  'playstation.com',
+  'xbox.com',
+  'nintendo.com',
+  'nintendo.net',
+  'steampowered.com',
+]);
+
+/**
+ * Every billing domain the watcher should pull regardless of subject, deduped
+ * and free of the umbrella platforms above. Kept in lockstep with `MERCHANTS`
+ * so adding a merchant automatically widens the Gmail query.
+ */
+export function merchantQueryDomains(): string[] {
+  return [...new Set(MERCHANTS.flatMap((m) => m.domains))]
+    .filter((d) => !QUERY_UMBRELLA_DOMAINS.has(d))
+    .sort();
+}
+
 /** Find the registry entry whose domain matches (or is a parent of) the sender. */
 export function matchMerchant(from: string): Merchant | null {
   const domain = extractDomain(from);

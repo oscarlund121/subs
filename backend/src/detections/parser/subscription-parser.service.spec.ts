@@ -188,6 +188,14 @@ describe('SubscriptionParserService', () => {
           body: 'Are you free around 6?',
         },
       ],
+      [
+        'marketing/referral mail from a known merchant',
+        {
+          from: 'Spotify <no-reply@spotify.com>',
+          subject: 'Sidste chance for at dele 3 måneders gratis Premium med en ven.',
+          body: 'Del 3 måneders gratis Premium med en ven. 119 kr/måned bagefter.',
+        },
+      ],
     ];
 
     it.each(cases)('rejects %s', (_label, overrides) => {
